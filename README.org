@@ -1,0 +1,31 @@
+* Sparrow
+
+No text editors are perfect. So I am making a perfect one according to my preferences.
+
+Let's see how long I will bother trying to make this.
+
+
+** Quick start
+
+*** Linux
+
+#+BEGIN_SRC bash
+  git clone https://github.com/rubensorensen/sparrow.git
+  cd sparrow
+  mkdir build && cd build
+  cmake ..
+  make -k -j`nproc`
+  ./tests
+
+  # Verify that all tests pass before running the main executable
+  ./sparrow
+#+END_SRC
+
+*** Windows
+Windows support is not a priority at the moment and won't be officially supported in the near future.
+
+**  Contributing
+The project is still in its early stages, and I am currently the sole contributor while I'm working on the initial development. In the future I may consider opening up for public contributions.
+
+** License
+The project is licensed under the [[https://opensource.org/license/mit/][MIT license]].
