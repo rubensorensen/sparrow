@@ -1,9 +1,8 @@
 * Sparrow
 
-No text editors are perfect. So I am making a perfect one according to my preferences.
+No text editors are perfect. So I am making one.
 
-Let's see how long I will bother trying to make this.
-
+Let's see how long I will bother trying to make this be usable.
 
 ** Quick start
 
@@ -15,9 +14,7 @@ Let's see how long I will bother trying to make this.
   mkdir build && cd build
   cmake ..
   make -k -j`nproc`
-  ./tests
-
-  # Verify that all tests pass before running the main executable
+  ./test
   ./sparrow
 #+END_SRC
 

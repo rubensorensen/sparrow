@@ -1,7 +1,7 @@
 #include <core.hpp>
 #include <log.hpp>
 
-#include <GLFW/glfw3.h>
+#include <SDL3/SDL.h>
 
 #include <iostream>
 #include <cstdlib>
@@ -16,30 +16,36 @@ main(int argc, char *argv[])
         std::cerr << "Failed to initialize spdlog. Logging functionality will be limited" << std::endl;
     }
     
-    SPDLOG_INFO("Invocation name: \"{}\"", argv[0]);
+    LOG_INFO("Invocation name: \"{}\"", argv[0]);
     for (int i = 1; i < argc; ++i) {
-        SPDLOG_INFO("Cmd var. {}: {}", i, argv[i]);
+        LOG_INFO("Cmd var. {}: {}", i, argv[i]);
     }
-    
-    if (!glfwInit()) {
+
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
+        LOG_ERROR("SDL_Init failed: {}", SDL_GetError());
         return EXIT_FAILURE;
     }
 
-    GLFWwindow *window = glfwCreateWindow(1280, 720, "Sparrow", NULL, NULL);
-    if (!window) {
-        glfwTerminate();
+    SDL_Window *window = SDL_CreateWindow("Sparrow", 1280, 720, SDL_WINDOW_RESIZABLE);
+    if (window == nullptr) {
+        LOG_ERROR("SDL_CreateWindow failed: {}", SDL_GetError());
+        SDL_Quit();
         return EXIT_FAILURE;
     }
 
-    glfwMakeContextCurrent(window);
-
-    while (!glfwWindowShouldClose(window)) {
-        // Render here
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+    bool should_quit = false;
+    while (!should_quit) {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_EVENT_QUIT) {
+                should_quit = true;
+            }
+        }
     }
-    glfwTerminate();
+
+    SDL_DestroyWindow(window);
+
+    SDL_Quit();
     
     return EXIT_SUCCESS;
 }
