@@ -1,3 +1,6 @@
+#include "log.hpp"
+#include "core.hpp"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -9,14 +12,26 @@
 
 #include <GLFW/glfw3.h>
 
-#define UNUSED(x) ((void)x)
+void glfw_error_callback(int error, const char* description)
+{
+    UNUSED(error);
+    LOG_ERROR("GLFW error: {}", description);
+}
 
 int main(int argc, const char * argv[])
 {
     UNUSED(argc);
     UNUSED(argv);
 
-    FILE* font_file = fopen("res/Roboto-Black.ttf", "rb");
+    bool result = init_logging();
+    if (result == false) {
+        fprintf(stderr, "Logging was not initialized correctly, logging messages may not be displayed correctly.");
+    }
+
+    const char *font_filename = "res/Roboto-Black.ttf";
+    LOG_INFO("Loading font {}.", font_filename);
+    
+    FILE* font_file = fopen(font_filename, "rb");
     fseek(font_file, 0, SEEK_END);
     size_t size = ftell(font_file);
     fseek(font_file, 0, SEEK_SET);
@@ -26,10 +41,11 @@ int main(int argc, const char * argv[])
     fread(font_buffer, size, 1, font_file);
     fclose(font_file);
 
+    LOG_INFO("Font {} loaded.", font_filename);
+
     /* prepare font */
     stbtt_fontinfo font_info;
-    if (!stbtt_InitFont(&font_info, (unsigned char *)font_buffer, 0))
-    {
+    if (!stbtt_InitFont(&font_info, (unsigned char *)font_buffer, 0)) {
         printf("failed\n");
     }
 
@@ -79,36 +95,35 @@ int main(int argc, const char * argv[])
     uint32_t window_width = 1280;
     uint32_t window_height = 720;
 
-    GLFWwindow* window;
-
-    // Initialize the library
+    LOG_INFO("Initializing GLFW.");
     if (!glfwInit()) {
+        LOG_ERROR("GLFW was not initialized correctly.");
         return EXIT_FAILURE;
     }
+    LOG_INFO("GLFW initialized.");
 
-    // Create a windowed mode window and its OpenGL context
-    window = glfwCreateWindow(window_width, window_height, "Sparrow", NULL, NULL);
+    LOG_INFO("Setting GLFW error callback function");
+    glfwSetErrorCallback(glfw_error_callback);
+
+    LOG_INFO("Creating window.");
+    GLFWwindow *window = glfwCreateWindow(window_width, window_height, "Sparrow", NULL, NULL);
     if (!window) {
         glfwTerminate();
         return EXIT_FAILURE;
     }
 
-    // Make the window's context current
+    LOG_INFO("Setting OpenGL context");
     glfwMakeContextCurrent(window);
 
-    // Loop until the user closes the window
-    while (!glfwWindowShouldClose(window))
-    {
+    while (!glfwWindowShouldClose(window)) {
         // Render here
         // glClear(GL_COLOR_BUFFER_BIT);
 
-        // Swap front and back buffers
         glfwSwapBuffers(window);
-
-        // Poll for and process events
         glfwPollEvents();
     }
 
+    LOG_INFO("Terminating GLFW");
     glfwTerminate();
 
     return EXIT_SUCCESS;
