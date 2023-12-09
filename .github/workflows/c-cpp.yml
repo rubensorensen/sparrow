@@ -14,9 +14,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Update packages
-    - run: sudo apt-get update -y
+      run: sudo apt-get update -y
     - name: Install dependencies
-    - run: sudo apt-get install -y libxrandr
+      run: sudo apt-get install -y libxrandr
     - name: Make build directory
       run: mkdir -p build
     - name: Configure
