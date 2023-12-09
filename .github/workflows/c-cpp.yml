@@ -1,0 +1,27 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Update packages
+      run: sudo apt-get update -y
+    - name: Install dependencies
+      run: sudo apt-get install -y libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev mesa-common-dev libglu1-mesa-dev freeglut3-dev
+    - name: Make build directory
+      run: mkdir -p build
+    - name: Configure
+      run: cd build && cmake ..
+    - name: make
+      run: make -C build/ -k -j`nproc`
+    - name: test
+      run: ./build/test
