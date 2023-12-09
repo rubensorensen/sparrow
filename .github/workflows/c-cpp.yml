@@ -22,6 +22,6 @@ jobs:
     - name: Configure
       run: cd build && cmake ..
     - name: make
-      run: make -C build/
+      run: make -C build/ -k -j`nproc`
     - name: test
-      run: ./test
+      run: ./build/test
