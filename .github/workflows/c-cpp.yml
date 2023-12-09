@@ -16,7 +16,7 @@ jobs:
     - name: Update packages
       run: sudo apt-get update -y
     - name: Install dependencies
-      run: sudo apt-get install -y libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libmesa-dev
+      run: sudo apt-get install -y libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev mesa-common-dev libglu1-mesa-dev freeglut3-dev
     - name: Make build directory
       run: mkdir -p build
     - name: Configure
