@@ -4,6 +4,9 @@ No text editors are perfect. So I am making one.
 
 Let's see how long I will bother trying to make this be usable.
 
+## Build status
+![Test status](https://github.com/rubensorensen/sparrow/actions/workflows/tests.yml/badge.svg)
+
 ## Quick start
 
 ### Linux
