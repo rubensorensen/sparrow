@@ -1,5 +1,7 @@
 #include "log.h"
 
+#if defined(linux)
+#include <unistd.h>
 b32
 check_terminal_supports_ansi_escape_codes(void)
 {
@@ -8,11 +10,9 @@ check_terminal_supports_ansi_escape_codes(void)
 
     if (queried) {
         return supported;
+    } else {
+        queried = true;
     }
-    queried = true;
-
-#if defined(linux)
-#include <unistd.h>
 
     int fd[2];
     if (pipe(fd) < 0) {
@@ -41,16 +41,24 @@ check_terminal_supports_ansi_escape_codes(void)
     while (read(fd[0], buf, sizeof(buf)) != 0) {};
     if (atoi(buf) == 256) {
         supported = true;
+        return true;
     }
 
     return supported;
-
+}
     // Todo: Implement function for win32.
 #elif defined(_WIN32)
+b32
+check_terminal_supports_ansi_escape_codes(void)
+{
     return false;
+}
 
     // Todo: Maybe account for other platforms? Will probably just leave at false
 #else
+b32
+check_terminal_supports_ansi_escape_codes(void)
+{
     return false;
-#endif
 }
+#endif
