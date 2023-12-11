@@ -10,14 +10,14 @@ Let's see how long I will bother trying to make this be usable.
 ## Quick start
 
 ### Linux
-#### Build
 
 ```bash
+  # Clone repo
   git clone https://github.com/rubensorensen/sparrow.git
   cd sparrow
-  mkdir build && cd build
   
-  #configure build
+  # Configure build
+  mkdir build && cd build
   cmake ..
   
   # Build and run tests
@@ -37,7 +37,7 @@ Windows support is not a priority at the moment and won't be officially supporte
 MacOS support is not a priority at the moment and won't be officially supported in the near future. Linux build guide may work.
 
 ## Contributing
-The project is still in its early stages, and I am currently the sole contributor while I'm working on the initial development. In the future I may consider opening up for public contributions.
+The project is still in its early stages, and I am currently the sole contributor. In the future I may consider opening up for public contributions.
 
 ## Licenses
 This project is licensed under the [MIT license](https://opensource.org/license/mit/).
