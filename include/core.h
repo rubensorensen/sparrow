@@ -26,6 +26,7 @@ typedef s32 b32;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
+// Uses strftime under the hood, so refer to the documentation of strftime for format options
 void get_clock_human_readable(char *buf, size_t buf_size, char *format);
 
 #define CORE_H

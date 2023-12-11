@@ -5,7 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined(_WIN32)
+#if defined(__unix__)
+#include <libgen.h>
+#define FILEPATH __FILE__
+#define FILENAME basename(__FILE__)
+#define FILELINE __LINE__
+
+#elif defined(_WIN32)
 // TODO: FILENAME macro has not been tested on Win32.
 //       If it leads to compilation issues, just replace it with
 //       # define FILENAME __FILE__
@@ -13,12 +19,6 @@
 //       may prove useful anyway
 #DEFINE FILEPATH __FILE__
 #define FILENAME (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__) // https://stackoverflow.com/a/8488201
-#define FILELINE __LINE__
-
-#elif defined(linux)
-#include <libgen.h>
-#define FILEPATH __FILE__
-#define FILENAME basename(__FILE__)
 #define FILELINE __LINE__
 
 #else
@@ -86,14 +86,14 @@
 #define LOG_ERROR_NAME   "ERROR"
 #define LOG_FATAL_NAME   "FATAL"
 
-static char _human_readable_text_buffer[200];
+static char _log_time_buffer[200];
 
 #define NONCOLERED_LOG_BASE(sink, log_type_string, ...) {               \
-        get_clock_human_readable(_human_readable_text_buffer,           \
-                                 ARRAY_SIZE(_human_readable_text_buffer), \
+        get_clock_human_readable(_log_time_buffer,           \
+                                 ARRAY_SIZE(_log_time_buffer), \
                                  "%H:%M:%S");                           \
         fprintf(sink, "(%s) [%s] %s:%d%-5s ",                           \
-                _human_readable_text_buffer,                            \
+                _log_time_buffer,                            \
                 log_type_string,                                        \
                 FILENAME, FILELINE, "");                                \
         fprintf(sink, __VA_ARGS__);                                     \
@@ -104,11 +104,11 @@ static char _human_readable_text_buffer[200];
                          log_type_color,                                \
                          file_name_color,                               \
                          file_line_color, ...) {                        \
-        get_clock_human_readable(_human_readable_text_buffer,           \
-                                 ARRAY_SIZE(_human_readable_text_buffer), \
+        get_clock_human_readable(_log_time_buffer,           \
+                                 ARRAY_SIZE(_log_time_buffer), \
                                  "%H:%M:%S");                           \
         fprintf(sink, "(%s%s%s) [%s%s%s] %s%s%s:%s%d%s%-5s ",         \
-                ANSI_WHITE, _human_readable_text_buffer, ANSI_RESET,    \
+                ANSI_WHITE, _log_time_buffer, ANSI_RESET,    \
                 log_type_color, log_type_string, ANSI_RESET,            \
                 file_name_color, FILENAME, ANSI_RESET,                  \
                 file_line_color, FILELINE, ANSI_RESET, "");             \

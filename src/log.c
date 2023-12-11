@@ -1,6 +1,6 @@
 #include "log.h"
 
-#if defined(linux)
+#if defined(linux) || defined(__unix__)
 #include <unistd.h>
 
 b32
@@ -47,15 +47,23 @@ check_terminal_supports_ansi_escape_codes(void)
 
     return supported;
 }
-    // Todo: Implement function for win32.
+
 #elif defined(_WIN32)
+// TODO: Not implemented
 b32
 check_terminal_supports_ansi_escape_codes(void)
 {
     return false;
 }
 
-    // Todo: Maybe account for other platforms? Will probably just leave at false
+#elif defined(__APPLE__)
+// TODO: Not implemented
+b32
+check_terminal_supports_ansi_escape_codes(void)
+{
+    return false;
+}
+
 #else
 b32
 check_terminal_supports_ansi_escape_codes(void)

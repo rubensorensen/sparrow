@@ -6,7 +6,6 @@
 #include <math.h>
 #include <string.h>
 #include <stdint.h>
-#include <stdbool.h>
 
 #include "stb/stb_image_write.h"
 #include "stb/stb_truetype.h"
