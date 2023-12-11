@@ -67,7 +67,8 @@ int main(int argc, const char * argv[])
         ascent = roundf(ascent * scale);
         descent = roundf(descent * scale);
 
-        LOG_SUCCESS("Font successfully ste up.");
+        LOG_WARNING("Test");
+        LOG_SUCCESS("Font successfully set up.");
 
         LOG_INFO("Rendering text to bitmap.");
         for (size_t i = 0; i < strlen(text); ++i)
