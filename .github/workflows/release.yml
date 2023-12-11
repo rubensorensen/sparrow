@@ -1,13 +1,11 @@
-name: Test status
+name: Build Status
 
 on:
   push:
     branches:
       - main
-      - dev
   pull_request:
     branches:
-      - dev
       - main
 
 jobs:
@@ -25,7 +23,14 @@ jobs:
       run: mkdir -p build
     - name: Configure
       run: cd build && cmake ..
-    - name: make test
-      run: make -C build/ -k -j`nproc` test
-    - name: test
-      run: ./build/test
+    - name: make sparrow
+      run: make -C build/ -k -j`nproc` sparrow
+    - name: Release
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: false
+        title: "Latest release"
+        files: |
+          build/sparrow
