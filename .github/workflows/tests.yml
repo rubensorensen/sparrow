@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: tests
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
       run: mkdir -p build
     - name: Configure
       run: cd build && cmake ..
-    - name: make
-      run: make -C build/ -k -j`nproc`
+    - name: make test
+      run: make -C build/ -k -j`nproc` test
     - name: test
       run: ./build/test
