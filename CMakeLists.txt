@@ -26,6 +26,15 @@ if(NOT glfw_POPULATED)
     add_subdirectory(${glfw_SOURCE_DIR} ${glfw_BINARY_DIR})
 endif()
 
+# Get glew
+set(ONLY_LIBS ON)
+set(glew-cmake_BUILD_SHARED NO)
+set(glew-cmake_BUILD_STATIC YES)
+FetchContent_Declare(
+  glew
+  GIT_REPOSITORY https://github.com/Perlmint/glew-cmake.git
+)
+FetchContent_MakeAvailable(glew)
 
 set(SPARROW_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SPARROW_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -46,6 +55,7 @@ target_include_directories(sparrow
 target_link_libraries(sparrow
   PRIVATE
   glfw
+  libglew_static
 )
 
 if(MSVC)

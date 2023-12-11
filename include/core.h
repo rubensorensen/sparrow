@@ -26,6 +26,27 @@ typedef s32 b32;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
+#if defined(__unix__)
+#include <libgen.h>
+#define FILEPATH __FILE__
+#define FILENAME basename(__FILE__)
+#define FILELINE __LINE__
+
+#elif defined(_WIN32)
+// TODO: FILENAME macro has not been tested on Win32.
+//       If it leads to compilation issues, just replace it with
+//       # define FILENAME __FILE__
+//       It will contain the full path instead of just the filename, but it
+//       may prove useful anyway
+#DEFINE FILEPATH __FILE__
+#define FILENAME (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__) // https://stackoverflow.com/a/8488201
+#define FILELINE __LINE__
+
+#else
+#define FILENAME __FILE__
+#define FILELINE __LINE__
+#endif
+
 // Uses strftime under the hood, so refer to the documentation of strftime for format options
 void get_clock_human_readable(char *buf, size_t buf_size, char *format);
 

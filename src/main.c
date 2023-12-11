@@ -10,6 +10,7 @@
 #include "stb/stb_image_write.h"
 #include "stb/stb_truetype.h"
 
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
 void glfw_error_callback(int error, const char* description)
@@ -110,6 +111,11 @@ int main(int argc, const char * argv[])
     LOG_INFO("Setting GLFW error callback function.");
     glfwSetErrorCallback(glfw_error_callback);
 
+    LOG_INFO("Setting GLFW hints to use OpenGL core profile");
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
     LOG_INFO("Creating window.");
     GLFWwindow *window = glfwCreateWindow(window_width, window_height, "Sparrow", NULL, NULL);
     if (!window) LOG_FATAL("Could not create window.");
@@ -117,6 +123,11 @@ int main(int argc, const char * argv[])
 
     glfwMakeContextCurrent(window);
     LOG_SUCCESS("Set OpenGL context.");
+
+    // Initialize GLEW
+    LOG_INFO("Initializing GLEW")
+    if (glewInit() != GLEW_OK) LOG_FATAL("Failed to initialize GLEW");
+    LOG_SUCCESS("GLEW successfully initialized");
 
     while (!glfwWindowShouldClose(window)) {
         // Render here

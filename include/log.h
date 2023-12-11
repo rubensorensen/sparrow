@@ -5,27 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined(__unix__)
-#include <libgen.h>
-#define FILEPATH __FILE__
-#define FILENAME basename(__FILE__)
-#define FILELINE __LINE__
-
-#elif defined(_WIN32)
-// TODO: FILENAME macro has not been tested on Win32.
-//       If it leads to compilation issues, just replace it with
-//       # define FILENAME __FILE__
-//       It will contain the full path instead of just the filename, but it
-//       may prove useful anyway
-#DEFINE FILEPATH __FILE__
-#define FILENAME (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__) // https://stackoverflow.com/a/8488201
-#define FILELINE __LINE__
-
-#else
-#define FILENAME __FILE__
-#define FILELINE __LINE__
-#endif
-
 // Ansi color escape codes - Regular
 #define ANSI_BLACK   "\033[0;30m"
 #define ANSI_RED     "\033[0;31m"
@@ -33,7 +12,7 @@
 #define ANSI_YELLOW  "\033[0;33m"
 #define ANSI_BLUE    "\033[0;34m"
 #define ANSI_MAGENTA "\033[0;35m"
-#define ANSI_CYNAN   "\033[0;36m"
+#define ANSI_CYAN   "\033[0;36m"
 #define ANSI_WHITE   "\033[0;37m"
 
 // Ansi color escape codes - Bold
@@ -100,20 +79,23 @@ static char _log_time_buffer[200];
         fprintf(sink, "\n");                                            \
     }
 
-#define COLORED_LOG_BASE(sink, log_type_string,                         \
-                         log_type_color,                                \
-                         file_name_color,                               \
-                         file_line_color, ...) {                        \
-        get_clock_human_readable(_log_time_buffer,           \
-                                 ARRAY_SIZE(_log_time_buffer), \
-                                 "%H:%M:%S");                           \
-        fprintf(sink, "(%s%s%s) [%s%s%s] %s%s%s:%s%d%s%-5s ",         \
-                ANSI_WHITE, _log_time_buffer, ANSI_RESET,    \
-                log_type_color, log_type_string, ANSI_RESET,            \
-                file_name_color, FILENAME, ANSI_RESET,                  \
-                file_line_color, FILELINE, ANSI_RESET, "");             \
-        fprintf(sink, __VA_ARGS__);                                     \
-        fprintf(sink, "\n");                                            \
+#define COLORED_LOG_BASE(sink, log_type_string,                 \
+                         log_type_color,                        \
+                         file_name_color,                       \
+                         file_line_color,                       \
+                         text_color, ...) {                     \
+        get_clock_human_readable(_log_time_buffer,              \
+                                 ARRAY_SIZE(_log_time_buffer),  \
+                                 "%H:%M:%S");                   \
+        fprintf(sink, "(%s%s%s) [%s%s%s] %s%s%s:%s%d%s%-5s ",   \
+                ANSI_WHITE, _log_time_buffer, ANSI_RESET,       \
+                log_type_color, log_type_string, ANSI_RESET,    \
+                file_name_color, FILENAME, ANSI_RESET,          \
+                file_line_color, FILELINE, ANSI_RESET, "");     \
+        fprintf(sink, text_color);                              \
+        fprintf(sink, __VA_ARGS__);                             \
+        fprintf(sink, ANSI_RESET);                              \
+        fprintf(sink, "\n");                                    \
     }
 
 #define NONCOLERED_LOG_TRACE(...)   NONCOLERED_LOG_BASE(stdout, LOG_TRACE_NAME, __VA_ARGS__)
@@ -130,32 +112,38 @@ static char _log_time_buffer[200];
                                                   ANSI_WHITE,            /* Log type color    */ \
                                                   ANSI_HI_WHITE,         /* File name color   */ \
                                                   ANSI_HI_WHITE,         /* Line number color */ \
+                                                  ANSI_HI_WHITE,         /* Text color        */ \
                                                   __VA_ARGS__)
 #define COLORED_LOG_INFO(...)    COLORED_LOG_BASE(stdout, LOG_INFO_NAME, \
                                                   ANSI_B_WHITE,          /* Log type color    */ \
                                                   ANSI_HI_WHITE,         /* File name color   */ \
                                                   ANSI_HI_WHITE,         /* Line number color */ \
+                                                  ANSI_HI_WHITE,         /* Text color        */ \
                                                   __VA_ARGS__)
 #define COLORED_LOG_SUCCESS(...) COLORED_LOG_BASE(stdout, LOG_SUCCESS_NAME, \
                                                   ANSI_B_GREEN,          /* Log type color    */ \
-                                                  ANSI_HI_B_GREEN,       /* File name color   */ \
-                                                  ANSI_HI_B_GREEN,       /* Line number color */ \
+                                                  ANSI_HI_B_WHITE,       /* File name color   */ \
+                                                  ANSI_HI_WHITE,         /* Line number color */ \
+                                                  ANSI_HI_GREEN,         /* Text color        */ \
                                                   __VA_ARGS__)
 #define COLORED_LOG_WARNING(...) COLORED_LOG_BASE(stderr, LOG_WARNING_NAME, \
                                                   ANSI_B_YELLOW,         /* Log type color    */ \
-                                                  ANSI_HI_B_YELLOW,      /* File name color   */ \
-                                                  ANSI_HI_YELLOW,        /* Line number color */ \
+                                                  ANSI_HI_B_WHITE,      /* File name color   */ \
+                                                  ANSI_HI_WHITE,        /* Line number color */ \
+                                                  ANSI_HI_YELLOW,        /* Text color        */ \
                                                   __VA_ARGS__)
 #define COLORED_LOG_ERROR(...)   COLORED_LOG_BASE(stderr, LOG_ERROR_NAME, \
                                                   ANSI_B_RED,            /* Log type color    */ \
-                                                  ANSI_HI_B_RED,         /* File name color   */ \
-                                                  ANSI_HI_RED,           /* Line number color */ \
+                                                  ANSI_HI_B_WHITE,         /* File name color   */ \
+                                                  ANSI_HI_WHITE,           /* Line number color */ \
+                                                  ANSI_HI_RED,           /* Text color        */ \
                                                   __VA_ARGS__)
 #define COLORED_LOG_FATAL(...)   {                              \
         COLORED_LOG_BASE(stderr, LOG_FATAL_NAME,                \
                          ANSI_B_RED,    /* Log type color    */ \
-                         ANSI_HI_B_RED, /* File name color   */ \
-                         ANSI_HI_RED,   /* Line number color */ \
+                         ANSI_HI_B_WHITE, /* File name color   */ \
+                         ANSI_HI_WHITE,   /* Line number color */ \
+                         ANSI_HI_RED,   /* Text color        */ \
                          __VA_ARGS__);                          \
         exit(EXIT_FAILURE);                                     \
     }
