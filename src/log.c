@@ -2,6 +2,7 @@
 
 #if defined(linux)
 #include <unistd.h>
+
 b32
 check_terminal_supports_ansi_escape_codes(void)
 {

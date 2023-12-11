@@ -1,6 +1,7 @@
 #ifndef CORE_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #define UNUSED(x) ((void)x)
 
@@ -22,6 +23,10 @@ typedef s32 b32;
 
 #define true 1
 #define false 0
+
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+
+void get_clock_human_readable(char *buf, size_t buf_size, char *format);
 
 #define CORE_H
 #endif

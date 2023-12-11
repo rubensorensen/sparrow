@@ -86,24 +86,34 @@
 #define LOG_ERROR_NAME   "ERROR"
 #define LOG_FATAL_NAME   "FATAL"
 
-#define NONCOLERED_LOG_BASE(sink, log_type_string, ...) {   \
-        fprintf(sink, "[%s] %s:%d - ",                      \
-                log_type_string,                            \
-                FILENAME, FILELINE);                        \
-        fprintf(sink, __VA_ARGS__);                         \
-        fprintf(sink, "\n");                                \
+static char _human_readable_text_buffer[200];
+
+#define NONCOLERED_LOG_BASE(sink, log_type_string, ...) {               \
+        get_clock_human_readable(_human_readable_text_buffer,           \
+                                 ARRAY_SIZE(_human_readable_text_buffer), \
+                                 "%H:%M:%S");                           \
+        fprintf(sink, "(%s) [%s] %s:%d%-5s ",                           \
+                _human_readable_text_buffer,                            \
+                log_type_string,                                        \
+                FILENAME, FILELINE, "");                                \
+        fprintf(sink, __VA_ARGS__);                                     \
+        fprintf(sink, "\n");                                            \
     }
 
-#define COLORED_LOG_BASE(sink, log_type_string,                 \
-                         log_type_color,                        \
-                         file_name_color,                       \
-                         file_line_color, ...) {                \
-        fprintf(sink, "[%s%s%s] %s%s%s:%s%d%-5s ",              \
-                log_type_color, log_type_string, ANSI_RESET,    \
-                file_name_color, FILENAME, ANSI_RESET,          \
-                file_line_color, FILELINE, ANSI_RESET);         \
-        fprintf(sink, __VA_ARGS__);                             \
-        fprintf(sink, "\n");                                    \
+#define COLORED_LOG_BASE(sink, log_type_string,                         \
+                         log_type_color,                                \
+                         file_name_color,                               \
+                         file_line_color, ...) {                        \
+        get_clock_human_readable(_human_readable_text_buffer,           \
+                                 ARRAY_SIZE(_human_readable_text_buffer), \
+                                 "%H:%M:%S");                           \
+        fprintf(sink, "(%s%s%s) [%s%s%s] %s%s%s:%s%d%s%-5s ",         \
+                ANSI_WHITE, _human_readable_text_buffer, ANSI_RESET,    \
+                log_type_color, log_type_string, ANSI_RESET,            \
+                file_name_color, FILENAME, ANSI_RESET,                  \
+                file_line_color, FILELINE, ANSI_RESET, "");             \
+        fprintf(sink, __VA_ARGS__);                                     \
+        fprintf(sink, "\n");                                            \
     }
 
 #define NONCOLERED_LOG_TRACE(...)   NONCOLERED_LOG_BASE(stdout, LOG_TRACE_NAME, __VA_ARGS__)
