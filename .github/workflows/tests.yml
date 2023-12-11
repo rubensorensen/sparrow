@@ -25,7 +25,7 @@ jobs:
       run: mkdir -p build
     - name: Configure
       run: cd build && cmake ..
-    - name: make
+    - name: make test
       run: make -C build/ -k -j`nproc`
     - name: test
       run: ./build/test
