@@ -2,6 +2,7 @@
 
 ![Test status](https://github.com/rubensorensen/sparrow/actions/workflows/tests.yml/badge.svg)
 ![Release status](https://github.com/rubensorensen/sparrow/actions/workflows/release.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 No text editors are perfect. So I am making one.
 
@@ -15,15 +16,15 @@ Let's see how long I will bother trying to make this be usable.
   # Clone repo
   git clone https://github.com/rubensorensen/sparrow.git
   cd sparrow
-  
+
   # Configure build
   mkdir build && cd build
   cmake ..
-  
+
   # Build and run tests
   make -k -j`nproc` test
   ./test
-  
+
   # Build and run sparrow
   make -k -j`nproc` sparrow
   cd ..
