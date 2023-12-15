@@ -65,36 +65,32 @@
 #define LOG_ERROR_NAME   "ERROR"
 #define LOG_FATAL_NAME   "FATAL"
 
-static char _log_time_buffer[200];
-#define SET_LOG_TIME_BUFFER() get_clock_human_readable(_log_time_buffer, \
-                                                     ARRAY_SIZE(_log_time_buffer), \
-                                                     "%H:%M:%S")
+const char *_get_log_time_string(void);
 
 #define NONCOLERED_LOG_BASE(sink, log_type_string, ...) {   \
-        SET_LOG_TIME_BUFFER();                              \
-        fprintf(sink, "(%s) %s%s [%s:%d] ",               \
-                _log_time_buffer,                           \
-                log_type_string, "",                        \
-                FILENAME, FILELINE);                        \
+        fprintf(sink, "(%s) %-7s %s:%-5d  ",                \
+                _get_log_time_string(),                     \
+                log_type_string,                            \
+                FILENAME,                                   \
+                FILELINE);                                  \
         fprintf(sink, __VA_ARGS__);                         \
         fprintf(sink, "\n");                                \
     }
 
-#define COLORED_LOG_BASE(sink, log_type_string,                     \
-                         log_type_color,                            \
-                         file_name_color,                           \
-                         file_line_color,                           \
-                         text_color, ...) {                         \
-        SET_LOG_TIME_BUFFER();                                      \
-        fprintf(sink, "(%s%s%s) %s%-7s%s [%s%s%s:%s%4d%s%s] ",   \
-                ANSI_WHITE, _log_time_buffer, ANSI_RESET,           \
-                log_type_color, log_type_string, ANSI_RESET,        \
-                file_name_color, FILENAME, ANSI_RESET,              \
-                file_line_color, FILELINE, ANSI_RESET, "");         \
-        fprintf(sink, text_color);                                  \
-        fprintf(sink, __VA_ARGS__);                                 \
-        fprintf(sink, ANSI_RESET);                                  \
-        fprintf(sink, "\n");                                        \
+#define COLORED_LOG_BASE(sink, log_type_string,                 \
+                         log_type_color,                        \
+                         file_name_color,                       \
+                         file_line_color,                       \
+                         text_color, ...) {                     \
+        fprintf(sink, "(%s%s%s) %s%-7s%s %s%s%s:%s%-5d%s  ",    \
+                ANSI_WHITE, _get_log_time_string(), ANSI_RESET, \
+                log_type_color, log_type_string, ANSI_RESET,    \
+                file_name_color, FILENAME, ANSI_RESET,          \
+                file_line_color, FILELINE, ANSI_RESET);         \
+        fprintf(sink, text_color);                              \
+        fprintf(sink, __VA_ARGS__);                             \
+        fprintf(sink, ANSI_RESET);                              \
+        fprintf(sink, "\n");                                    \
     }
 
 #define NONCOLERED_LOG_TRACE(...)   NONCOLERED_LOG_BASE(stdout, LOG_TRACE_NAME, __VA_ARGS__)
@@ -102,9 +98,9 @@ static char _log_time_buffer[200];
 #define NONCOLERED_LOG_SUCCESS(...) NONCOLERED_LOG_BASE(stdout, LOG_SUCCESS_NAME, __VA_ARGS__)
 #define NONCOLERED_LOG_WARNING(...) NONCOLERED_LOG_BASE(stderr, LOG_WARNING_NAME, __VA_ARGS__)
 #define NONCOLERED_LOG_ERROR(...)   NONCOLERED_LOG_BASE(stderr, LOG_ERROR_NAME, __VA_ARGS__)
-#define NONCOLERED_LOG_FATAL(...)  { \
-        NONCOLERED_LOG_BASE(stderr, LOG_FATAL_NAME, __VA_ARGS__); \
-        exit(EXIT_FAILURE); \
+#define NONCOLERED_LOG_FATAL(...)  {                                \
+        NONCOLERED_LOG_BASE(stderr, LOG_FATAL_NAME, __VA_ARGS__);   \
+        exit(EXIT_FAILURE);                                         \
     }
 
 #define COLORED_LOG_TRACE(...)   COLORED_LOG_BASE(stdout, LOG_TRACE_NAME, \
@@ -121,36 +117,36 @@ static char _log_time_buffer[200];
                                                   __VA_ARGS__)
 #define COLORED_LOG_SUCCESS(...) COLORED_LOG_BASE(stdout, LOG_SUCCESS_NAME, \
                                                   ANSI_B_GREEN,          /* Log type color    */ \
-                                                  ANSI_HI_WHITE,       /* File name color   */ \
+                                                  ANSI_HI_WHITE,         /* File name color   */ \
                                                   ANSI_HI_WHITE,         /* Line number color */ \
                                                   ANSI_HI_GREEN,         /* Text color        */ \
                                                   __VA_ARGS__)
 #define COLORED_LOG_WARNING(...) COLORED_LOG_BASE(stderr, LOG_WARNING_NAME, \
                                                   ANSI_B_YELLOW,         /* Log type color    */ \
-                                                  ANSI_HI_WHITE,      /* File name color   */ \
-                                                  ANSI_HI_WHITE,        /* Line number color */ \
+                                                  ANSI_HI_WHITE,         /* File name color   */ \
+                                                  ANSI_HI_WHITE,         /* Line number color */ \
                                                   ANSI_HI_YELLOW,        /* Text color        */ \
                                                   __VA_ARGS__)
 #define COLORED_LOG_ERROR(...)   COLORED_LOG_BASE(stderr, LOG_ERROR_NAME, \
                                                   ANSI_B_RED,            /* Log type color    */ \
                                                   ANSI_HI_WHITE,         /* File name color   */ \
-                                                  ANSI_HI_WHITE,           /* Line number color */ \
+                                                  ANSI_HI_WHITE,         /* Line number color */ \
                                                   ANSI_HI_RED,           /* Text color        */ \
                                                   __VA_ARGS__)
 #define COLORED_LOG_FATAL(...)   {                                  \
         COLORED_LOG_BASE(stderr, LOG_FATAL_NAME,                    \
                          ANSI_B_RED,      /* Log type color    */   \
-                         ANSI_HI_WHITE, /* File name color   */   \
+                         ANSI_HI_WHITE, /* File name color   */     \
                          ANSI_HI_WHITE,   /* Line number color */   \
                          ANSI_HI_RED,     /* Text color        */   \
                          __VA_ARGS__);                              \
         exit(EXIT_FAILURE);                                         \
     }
 
-b32 check_terminal_supports_ansi_escape_codes(void);
+b32 _check_terminal_supports_ansi_escape_codes(void);
 
 #define LOG_TRACE(...) {                                    \
-        if (check_terminal_supports_ansi_escape_codes()){   \
+        if (_check_terminal_supports_ansi_escape_codes()){  \
             COLORED_LOG_TRACE(__VA_ARGS__);                 \
         } else {                                            \
             NONCOLERED_LOG_TRACE(__VA_ARGS__);              \
@@ -158,7 +154,7 @@ b32 check_terminal_supports_ansi_escape_codes(void);
     }
 
 #define LOG_INFO(...) {                                     \
-        if (check_terminal_supports_ansi_escape_codes()) {  \
+        if (_check_terminal_supports_ansi_escape_codes()) { \
             COLORED_LOG_INFO(__VA_ARGS__);                  \
         } else {                                            \
             NONCOLERED_LOG_INFO(__VA_ARGS__);               \
@@ -166,7 +162,7 @@ b32 check_terminal_supports_ansi_escape_codes(void);
     }
 
 #define LOG_SUCCESS(...) {                                  \
-        if (check_terminal_supports_ansi_escape_codes()) {  \
+        if (_check_terminal_supports_ansi_escape_codes()) { \
             COLORED_LOG_SUCCESS(__VA_ARGS__);               \
         } else {                                            \
             NONCOLERED_LOG_SUCCESS(__VA_ARGS__);            \
@@ -174,7 +170,7 @@ b32 check_terminal_supports_ansi_escape_codes(void);
     }
 
 #define LOG_WARNING(...) {                                  \
-        if (check_terminal_supports_ansi_escape_codes()) {  \
+        if (_check_terminal_supports_ansi_escape_codes()) { \
             COLORED_LOG_WARNING(__VA_ARGS__);               \
         } else {                                            \
             NONCOLERED_LOG_WARNING(__VA_ARGS__);            \
@@ -182,7 +178,7 @@ b32 check_terminal_supports_ansi_escape_codes(void);
     }
 
 #define LOG_ERROR(...) {                                    \
-        if (check_terminal_supports_ansi_escape_codes()) {  \
+        if (_check_terminal_supports_ansi_escape_codes()) { \
             COLORED_LOG_ERROR(__VA_ARGS__);                 \
         } else {                                            \
             NONCOLERED_LOG_ERROR(__VA_ARGS__);              \
@@ -190,7 +186,7 @@ b32 check_terminal_supports_ansi_escape_codes(void);
     }
 
 #define LOG_FATAL(...) {                                    \
-        if (check_terminal_supports_ansi_escape_codes()) {  \
+        if (_check_terminal_supports_ansi_escape_codes()) { \
             COLORED_LOG_FATAL(__VA_ARGS__);                 \
         } else {                                            \
             NONCOLERED_LOG_FATAL(__VA_ARGS__);              \

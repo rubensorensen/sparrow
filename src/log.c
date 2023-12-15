@@ -1,10 +1,20 @@
 #include "log.h"
 
-#if defined(linux) || defined(__unix__)
-#include <unistd.h>
+static char _log_time_buffer[256];
+
+const char *
+_get_log_time_string(void)
+{
+    get_clock_human_readable(_log_time_buffer, ARRAY_SIZE(_log_time_buffer), "%H:%M:%S");
+    return _log_time_buffer;
+}
+
+
+#if defined(linux) || defined(__unix__) || defined(__APPLE__)
+#include <string.h>
 
 b32
-check_terminal_supports_ansi_escape_codes(void)
+_check_terminal_supports_ansi_escape_codes(void)
 {
     static b32 queried = false;
     static b32 supported = false;
@@ -15,58 +25,28 @@ check_terminal_supports_ansi_escape_codes(void)
         queried = true;
     }
 
-    int fd[2];
-    if (pipe(fd) < 0) {
-        return false;
-    }
-
-    pid_t pid = fork();
-    if (pid < 0) {
-        return false;
-    }
-
-    if (pid == 0) {
-        // Child
-        close(fd[0]);
-        if (dup2(fd[1], STDOUT_FILENO) < 0) {
-            return false;
-        }
-        close(fd[1]);
-        if (execl("/bin/tput", "/bin/tput", "colors", NULL) < 0) {
-            return false;
-        }
-    }
-
-    close(fd[1]);
-    char buf[100];
-    while (read(fd[0], buf, sizeof(buf)) != 0) {};
-    if (atoi(buf) == 256) {
+    const char* term = getenv("TERM");
+    if (term != NULL && strcmp(term, "dumb") != 0) {
         supported = true;
-        return true;
+    } else {
+        supported = false;
     }
 
     return supported;
 }
 
-#elif defined(_WIN32)
-// TODO: Not implemented
-b32
-check_terminal_supports_ansi_escape_codes(void)
-{
-    return false;
-}
+#elif defined(_WIN32) // @TODO: Not implemented
 
-#elif defined(__APPLE__)
-// TODO: Not implemented
 b32
-check_terminal_supports_ansi_escape_codes(void)
+_check_terminal_supports_ansi_escape_codes(void)
 {
     return false;
 }
 
 #else
+
 b32
-check_terminal_supports_ansi_escape_codes(void)
+_check_terminal_supports_ansi_escape_codes(void)
 {
     return false;
 }
