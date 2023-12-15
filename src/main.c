@@ -1,5 +1,5 @@
 #include "log.h"
-#include "core.h"
+#include "utils.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -157,65 +157,65 @@ main(int argc, const char * argv[])
     if (result != GLEW_OK) LOG_FATAL("Failed to initialize GLEW");
     LOG_SUCCESS("GLEW successfully initialized");
 
+    // Load shader sources
+    char *vertex_shader_source;
+    size_t vertex_shader_source_size;
+    slurp_file("res/shaders/triangle.vert.glsl", &vertex_shader_source, &vertex_shader_source_size);
 
-    char const *vertex_shader_source =
-        "#version 150\n"
-        "in vec2 position;\n"
-        "void main()\n"
-        "{\n"
-        "gl_Position = vec4(position, 0.0, 1.0);\n"
-        "}\n";
+    char *fragment_shader_source;
+    size_t fragment_shader_source_size;
+    slurp_file("res/shaders/triangle.frag.glsl", &fragment_shader_source, &fragment_shader_source_size);
 
-    char const *fragment_shader_source =
-        "#version 150\n"
-        "out vec4 outColor;\n"
-        "void main()\n"
-        "{\n"
-        "outColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
-        "}\n";
-
+    // Define vertices
     GLfloat const vertices [] = {
 		0.0f, 0.5f,
 		0.5f, -0.5f,
 		-0.5f, -0.5f
 	};
 
+    // Define indices
 	GLuint const elements [] = {
 		0, 1, 2
 	};
 
+    // Create VAO
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
+    // Create VBO
 	GLuint vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    // Create EBO
 	GLuint ebo;
 	glGenBuffers(1, &ebo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
+    // Compile vertex shader
     GLint compiled;
 	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
+	glShaderSource(vertex_shader, 1, (const char **)&vertex_shader_source, NULL);
 	glCompileShader(vertex_shader);
 	glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &compiled);
 	if (!compiled) {
 		LOG_ERROR("Failed to compile vertex shader!");
 	}
 
+    // Compile fragment shader
     GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
+	glShaderSource(fragment_shader, 1, (const char **)&fragment_shader_source, NULL);
 	glCompileShader(fragment_shader);
 	glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &compiled);
 	if (!compiled) {
 		LOG_ERROR("Failed to compile fragment shader!")
 	}
 
+    // Create shader program
     GLuint shader_program = glCreateProgram();
 	glAttachShader(shader_program, vertex_shader);
 	glAttachShader(shader_program, fragment_shader);
@@ -223,13 +223,16 @@ main(int argc, const char * argv[])
 	glLinkProgram(shader_program);
 	glUseProgram(shader_program);
 
+    // Set position attribute for shader program
     GLint position_attribute = glGetAttribLocation(shader_program, "position");
 	glEnableVertexAttribArray(position_attribute);
 
+    // Set position of attribute in shader
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glVertexAttribPointer(position_attribute, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    // Main loop
     while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
