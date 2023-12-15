@@ -13,20 +13,33 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-void glfw_error_callback(int error, const char* description)
+#include <cglm/cglm.h>
+
+void
+glfw_error_callback(int error, const char* description)
 {
     UNUSED(error);
     LOG_ERROR("GLFW error: %s", description);
 }
 
-int main(int argc, const char * argv[])
+static void
+test_cglm(void)
 {
-    UNUSED(argc);
-    UNUSED(argv);
+    LOG_INFO("Testing cglm");
+    mat4 m = {
+        {1, 0, 0, 0},
+        {0, 1, 0, 0},
+        {0, 0, 1, 0},
+        {0, 0, 0, 1}
+    };
+    glm_translate(m, (vec3){1.0f, 0.0f, 0.0f});
+    LOG_SUCCESS("Didn't crash? Seems like cglm is working");
+}
 
-    LOG_TRACE("Starting application");
-
-    LOG_INFO("Testing truetype file loading");
+static void
+test_truetype(void)
+{
+    LOG_INFO("Testing truetype");
     const char *font_filename = "res/Roboto-Black.ttf";
 
     FILE* font_file = fopen(font_filename, "rb");
@@ -39,14 +52,14 @@ int main(int argc, const char * argv[])
     fread(font_buffer, size, 1, font_file);
     fclose(font_file);
 
-    LOG_SUCCESS("Font file %s loaded into memory.", font_filename);
+    LOG_INFO("Font file %s loaded into memory.", font_filename);
 
     /* prepare font */
     stbtt_fontinfo font_info;
     if (!stbtt_InitFont(&font_info, (unsigned char *)font_buffer, 0)) {
         LOG_ERROR("Could not initialize font.");
     } else {
-        LOG_TRACE("Font %s prepared", font_filename);
+        LOG_INFO("Font %s prepared", font_filename);
 
         u32 bitmap_width = 512;
         u32 bitmap_height = 128;
@@ -67,8 +80,7 @@ int main(int argc, const char * argv[])
         ascent = roundf(ascent * scale);
         descent = roundf(descent * scale);
 
-        LOG_WARNING("Test");
-        LOG_SUCCESS("Font successfully set up.");
+        LOG_INFO("Font successfully set up.");
 
         LOG_INFO("Rendering text to bitmap.");
         for (size_t i = 0; i < strlen(text); ++i)
@@ -90,16 +102,30 @@ int main(int argc, const char * argv[])
             kerning = stbtt_GetCodepointKernAdvance(&font_info, text[i], text[i + 1]);
             x += roundf(kerning * scale);
         }
-        LOG_SUCCESS("Successfully rendered text.");
+        LOG_INFO("Successfully rendered text.");
 
         const char *rendered_image_out_file = "build/out.png";
         LOG_INFO("Writing rendered bitmap to file %s.", rendered_image_out_file);
         stbi_write_png("build/out.png", bitmap_width, bitmap_height, 1, bitmap, bitmap_width);
-        LOG_SUCCESS("Successfully wrote rendered bitmap to file %s.", rendered_image_out_file);
+        LOG_INFO("Successfully wrote rendered bitmap to file %s.", rendered_image_out_file);
 
         free(bitmap);
     }
     free(font_buffer);
+
+    LOG_SUCCESS("Didn't crash? Truetype working");
+}
+
+int
+main(int argc, const char * argv[])
+{
+    UNUSED(argc);
+    UNUSED(argv);
+
+    LOG_TRACE("Starting application");
+
+    test_cglm();
+    test_truetype();
 
     uint32_t window_width = 1280;
     uint32_t window_height = 720;
@@ -126,17 +152,99 @@ int main(int argc, const char * argv[])
     LOG_SUCCESS("Set OpenGL context.");
 
     // Initialize GLEW
-    LOG_INFO("Initializing GLEW")
-    if (glewInit() != GLEW_OK) LOG_FATAL("Failed to initialize GLEW");
+    LOG_INFO("Initializing GLEW");
+    GLenum result = glewInit();
+    if (result != GLEW_OK) LOG_FATAL("Failed to initialize GLEW");
     LOG_SUCCESS("GLEW successfully initialized");
 
+
+    char const *vertex_shader_source =
+        "#version 150\n"
+        "in vec2 position;\n"
+        "void main()\n"
+        "{\n"
+        "gl_Position = vec4(position, 0.0, 1.0);\n"
+        "}\n";
+
+    char const *fragment_shader_source =
+        "#version 150\n"
+        "out vec4 outColor;\n"
+        "void main()\n"
+        "{\n"
+        "outColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
+        "}\n";
+
+    GLfloat const vertices [] = {
+		0.0f, 0.5f,
+		0.5f, -0.5f,
+		-0.5f, -0.5f
+	};
+
+	GLuint const elements [] = {
+		0, 1, 2
+	};
+
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+	GLuint vbo;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	GLuint ebo;
+	glGenBuffers(1, &ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+
+    GLint compiled;
+	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
+	glCompileShader(vertex_shader);
+	glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &compiled);
+	if (!compiled) {
+		LOG_ERROR("Failed to compile vertex shader!");
+	}
+
+    GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
+	glCompileShader(fragment_shader);
+	glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &compiled);
+	if (!compiled) {
+		LOG_ERROR("Failed to compile fragment shader!")
+	}
+
+    GLuint shader_program = glCreateProgram();
+	glAttachShader(shader_program, vertex_shader);
+	glAttachShader(shader_program, fragment_shader);
+	glBindFragDataLocation(shader_program, 0, "outColor");
+	glLinkProgram(shader_program);
+	glUseProgram(shader_program);
+
+    GLint position_attribute = glGetAttribLocation(shader_program, "position");
+	glEnableVertexAttribArray(position_attribute);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glVertexAttribPointer(position_attribute, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
     while (!glfwWindowShouldClose(window)) {
-        // Render here
-        // glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    glDeleteProgram(shader_program);
+	glDeleteShader(fragment_shader);
+	glDeleteShader(vertex_shader);
+
+	glDeleteBuffers(1, &ebo);
+	glDeleteBuffers(1, &vbo);
+	glDeleteVertexArrays(1, &vao);
 
     LOG_INFO("Terminating GLFW.");
     glfwTerminate();
