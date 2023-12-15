@@ -38,6 +38,19 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glew)
 
+# Get cglm
+option(CGLM_SHARED "Shared build" OFF)
+option(CGLM_STATIC "Static build" ON)
+option(CGLM_USE_C99 "" OFF)
+option(CGLM_USE_TEST "Enable Tests" OFF)
+FetchContent_Declare(
+  cglm
+  GIT_REPOSITORY https://github.com/recp/cglm
+)
+FetchContent_MakeAvailable(cglm)
+
+# Sparrow
+
 set(SPARROW_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SPARROW_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -49,6 +62,12 @@ add_executable(sparrow
   ${SPARROW_HEADER_FILES}
 )
 
+if(MSVC)
+  target_compile_options(sparrow PRIVATE /W4 /WX)
+else()
+  target_compile_options(sparrow PRIVATE -Wall -Wextra -Wpedantic -ggdb -O0 -Wno-unused-variable)
+endif()
+
 target_include_directories(sparrow
   PRIVATE
   ${SPARROW_INCLUDE_DIR}
@@ -58,12 +77,7 @@ target_link_libraries(sparrow
   PRIVATE
   glfw
   libglew_static
+  cglm
 )
-
-if(MSVC)
-  target_compile_options(sparrow PRIVATE /W4 /WX)
-else()
-  target_compile_options(sparrow PRIVATE -Wall -Wextra -Wpedantic -ggdb -O0 -Wno-unused-variable)
-endif()
 
 add_subdirectory(tests)
