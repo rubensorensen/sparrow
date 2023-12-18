@@ -21,9 +21,8 @@ _check_terminal_supports_ansi_escape_codes(void)
 
     if (queried) {
         return supported;
-    } else {
-        queried = true;
     }
+    queried = true;
 
     const char* term = getenv("TERM");
     if (term != NULL && strcmp(term, "dumb") != 0) {

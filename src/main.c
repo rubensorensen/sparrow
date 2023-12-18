@@ -142,6 +142,7 @@ main(int argc, const char * argv[])
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     LOG_INFO("Creating window.");
     GLFWwindow *window = glfwCreateWindow(window_width, window_height, "Sparrow", NULL, NULL);
@@ -156,15 +157,6 @@ main(int argc, const char * argv[])
     GLenum result = glewInit();
     if (result != GLEW_OK) LOG_FATAL("Failed to initialize GLEW");
     LOG_SUCCESS("GLEW successfully initialized");
-
-    // Load shader sources
-    char *vertex_shader_source;
-    size_t vertex_shader_source_size;
-    slurp_file("res/shaders/triangle.vert.glsl", &vertex_shader_source, &vertex_shader_source_size);
-
-    char *fragment_shader_source;
-    size_t fragment_shader_source_size;
-    slurp_file("res/shaders/triangle.frag.glsl", &fragment_shader_source, &fragment_shader_source_size);
 
     // Define vertices
     GLfloat const vertices [] = {
@@ -196,6 +188,11 @@ main(int argc, const char * argv[])
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
+    // Load vertex shader source
+    char *vertex_shader_source;
+    size_t vertex_shader_source_size;
+    slurp_file("res/shaders/triangle.vert.glsl", &vertex_shader_source, &vertex_shader_source_size);
+
     // Compile vertex shader
     GLint compiled;
 	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -205,6 +202,12 @@ main(int argc, const char * argv[])
 	if (!compiled) {
 		LOG_ERROR("Failed to compile vertex shader!");
 	}
+    free(vertex_shader_source);
+
+    // Load fragment shader source
+    char *fragment_shader_source;
+    size_t fragment_shader_source_size;
+    slurp_file("res/shaders/triangle.frag.glsl", &fragment_shader_source, &fragment_shader_source_size);
 
     // Compile fragment shader
     GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -214,6 +217,7 @@ main(int argc, const char * argv[])
 	if (!compiled) {
 		LOG_ERROR("Failed to compile fragment shader!")
 	}
+    free(fragment_shader_source);
 
     // Create shader program
     GLuint shader_program = glCreateProgram();
@@ -241,10 +245,12 @@ main(int argc, const char * argv[])
         glfwPollEvents();
     }
 
+    // Delete shader
     glDeleteProgram(shader_program);
 	glDeleteShader(fragment_shader);
 	glDeleteShader(vertex_shader);
 
+    // Delete buffers
 	glDeleteBuffers(1, &ebo);
 	glDeleteBuffers(1, &vbo);
 	glDeleteVertexArrays(1, &vao);

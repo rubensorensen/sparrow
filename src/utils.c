@@ -2,7 +2,7 @@
 #include "log.h"
 
 #include <string.h>
-#include "errno.h"
+#include <errno.h>
 
 b32
 slurp_file(const char *filename, char **dest, size_t *bytes_read)
