@@ -6,6 +6,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdint.h>
+#include <assert.h>
 
 #include "stb/stb_image.h"
 #include "stb/stb_truetype.h"
@@ -147,6 +148,53 @@ set_shader_v4f32(Shader shader, const char *name, f32 v1, f32 v2, f32 v3, f32 v4
 	glUniform4f(glGetUniformLocation(shader.id, name), v1, v2, v3, v4);
 }
 
+typedef struct _Texture {
+	u32 id;
+} Texture;
+
+static Texture
+create_texture(const char *filepath, b32 flipped)
+{
+	Texture texture = {0};
+
+	u32 id;
+	
+	glGenTextures(1, &id);
+	glBindTexture(GL_TEXTURE_2D, id);
+	
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);	
+
+	stbi_set_flip_vertically_on_load(flipped);
+	s32 width, height, n_channels;
+	unsigned char *data = stbi_load(filepath, &width, &height, &n_channels, 4);
+	if (!data) {
+		LOG_ERROR("Failed to load texture %s", filepath);
+		return texture;
+	}
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	stbi_image_free(data);
+	
+	texture.id = id;
+	return texture;
+}
+
+static void
+delete_texture(Texture texture)
+{
+	glDeleteTextures(1, &texture.id);
+}
+
+static void
+use_texture(Texture texture, s32 unit)
+{
+	glActiveTexture(unit);
+	glBindTexture(GL_TEXTURE_2D, texture.id);
+}
+
 int
 main(int argc, const char * argv[])
 {
@@ -232,48 +280,9 @@ main(int argc, const char * argv[])
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 	
-	stbi_set_flip_vertically_on_load(true);  
-
-    u32 texture1;
-    {
-		glGenTextures(1, &texture1);
-		glBindTexture(GL_TEXTURE_2D, texture1);
+	Texture texture1 = create_texture("res/wall.jpg", false);
+	Texture texture2 = create_texture("res/awesomeface.png", true);
 	
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);	
-
-		int width, height, n_channels;
-		unsigned char *data = stbi_load("res/wall.jpg", &width, &height, &n_channels, 0);
-		if (!data) {
-			LOG_ERROR("Failed to load texture");
-		}
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		stbi_image_free(data);
-	}
-
-	u32 texture2;
-    {
-		glGenTextures(1, &texture2);
-		glBindTexture(GL_TEXTURE_2D, texture2);
-		
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);	
-
-		int width, height, n_channels;
-		unsigned char *data = stbi_load("res/awesomeface.png", &width, &height, &n_channels, 0);
-		if (!data) {
-			LOG_ERROR("Failed to load texture");
-		}
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		stbi_image_free(data);
-	}
-
 	use_shader(shader);
 	set_shader_s32(shader, "texture1", 0);
 	set_shader_s32(shader, "texture2", 1);
@@ -285,14 +294,12 @@ main(int argc, const char * argv[])
 
 		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture1);
-		
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, texture2);
+	    
+		use_texture(texture1, GL_TEXTURE0);
+		use_texture(texture2, GL_TEXTURE1);
 
 		use_shader(shader);
+		
 		glBindVertexArray(vao);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		
@@ -302,8 +309,12 @@ main(int argc, const char * argv[])
 	LOG_INFO("Exiting main loop");
 
 	LOG_INFO("Cleaning up OpenGL resources");
+	delete_texture(texture1);
+	delete_texture(texture2);
+	
 	glDeleteVertexArrays(1, &vao);
 	glDeleteBuffers(1, &vbo);
+	
 	delete_shader(shader);
 	
     LOG_INFO("Terminating GLFW.");
