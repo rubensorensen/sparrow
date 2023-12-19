@@ -16,38 +16,167 @@
 
 #include <cglm/cglm.h>
 
-static u32 window_width;
-static u32 window_height;
-
-static void
-glfw_error_callback(int error, const char* description)
-{
-    UNUSED(error);
-    LOG_ERROR("GLFW error: %s", description);
-}
-
-static void
-glfw_framebuffer_size_callback(GLFWwindow *window, s32 width, s32 height)
-{
-	UNUSED(window);
-
-	window_width = width;
-	window_height = height;
-	
-	glViewport(0, 0, width, height);
-}
-
-static void
-process_input(GLFWwindow *window)
-{
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-		glfwSetWindowShouldClose(window, true);
-	}
-}
-
 typedef struct _Shader {
 	u32 id;
 } Shader;
+
+typedef struct _Texture {
+	u32 id;
+} Texture;
+
+typedef enum _CameraMovement {
+	CAMERA_MOVEMENT_FORWARD,
+	CAMERA_MOVEMENT_BACKWARD,
+	CAMERA_MOVEMENT_LEFT,
+	CAMERA_MOVEMENT_RIGHT
+} CameraMovement;
+
+static const f32 CAMERA_YAW			= -90.0f;
+static const f32 CAMERA_PITCH		= 0.0f;
+static const f32 CAMERA_SPEED		= 0.1f;
+static const f32 CAMERA_SENSITIVITY = 10.0f;
+static const f32 CAMERA_ZOOM		= 45.0f;
+
+typedef struct _Camera {
+	vec3 position;
+	vec3 front;
+	vec3 up;
+	vec3 right;
+	vec3 world_up;
+
+	f32 yaw;
+	f32 pitch;
+
+	f32 movement_speed;
+	f32 mouse_sensitivity;
+	f32 zoom;
+} Camera;
+
+static u32 window_width;
+static u32 window_height;
+
+static Camera camera;
+
+static f32 delta_time, last_time;
+
+static f32 last_x_pos, last_y_pos;
+
+static b32 first_mouse = true;
+
+static void
+update_camera_vectors(Camera *camera)
+{
+	camera->front[0] = cosf(glm_rad(camera->yaw)) * cosf(glm_rad(camera->pitch));
+	camera->front[1] = sinf(glm_rad(camera->pitch));
+	camera->front[2] = sinf(glm_rad(camera->yaw)) * cosf(glm_rad(camera->pitch));
+	glm_vec3_normalize(camera->front);
+
+	glm_vec3_cross(camera->front, camera->world_up, camera->right);
+	glm_vec3_normalize(camera->right);
+
+	glm_vec3_cross(camera->right, camera->front, camera->up);
+	glm_vec3_normalize(camera->up);
+}
+
+static Camera
+create_camera(vec3 position, vec3 up, f32 yaw, f32 pitch)
+{
+	Camera camera = {0};
+
+	glm_vec3_copy((vec3){0.0f, 0.0f, -1.0f}, camera.front);
+	camera.movement_speed = CAMERA_SPEED;
+	camera.mouse_sensitivity = CAMERA_SENSITIVITY;
+	camera.zoom = CAMERA_ZOOM;
+
+    glm_vec3_copy(position, camera.position);
+	glm_vec3_copy(up, camera.world_up);
+	camera.yaw = yaw;
+	camera.pitch = pitch;
+
+	update_camera_vectors(&camera);
+
+	return camera;
+}
+
+static void
+get_camera_view_matrix(Camera *camera, mat4 *result)
+{
+	vec3 center;
+	glm_vec3_add(camera->position, camera->front, center);
+	glm_lookat(camera->position, center, camera->up, *result);
+}
+
+static void
+process_keyboard_for_camera(Camera *camera, CameraMovement direction, f32 delta_time)
+{
+	f32 velocity = camera->movement_speed * delta_time;
+
+	switch (direction) {
+		case CAMERA_MOVEMENT_FORWARD: {
+			camera->position[0] += velocity * camera->front[0];
+			camera->position[1] += velocity * camera->front[1];
+			camera->position[2] += velocity * camera->front[2];
+		} break;
+		case CAMERA_MOVEMENT_BACKWARD: {
+			camera->position[0] -= velocity * camera->front[0];
+			camera->position[1] -= velocity * camera->front[1];
+			camera->position[2] -= velocity * camera->front[2];
+		} break;
+		case CAMERA_MOVEMENT_LEFT: {
+			vec3 temp;
+			glm_vec3_cross(camera->front, camera->up, temp);
+			glm_vec3_normalize(temp);
+
+			camera->position[0] -= temp[0] * velocity;
+			camera->position[1] -= temp[1] * velocity;
+			camera->position[2] -= temp[2] * velocity;
+		} break;
+		case CAMERA_MOVEMENT_RIGHT: {
+			vec3 temp;
+			glm_vec3_cross(camera->front, camera->up, temp);
+			glm_vec3_normalize(temp);
+
+			camera->position[0] += temp[0] * velocity;
+			camera->position[1] += temp[1] * velocity;
+			camera->position[2] += temp[2] * velocity;
+			
+		} break;
+	}
+}
+
+static void
+process_mouse_movement_for_camera(Camera *camera, f32 x_off, f32 y_off,
+								  b32 constrain_pitch, f32 delta_time)
+{
+	f32 speed = camera->mouse_sensitivity * delta_time;
+	
+	x_off *= speed;
+	y_off *= speed;
+
+	camera->yaw += x_off;
+	camera->pitch += y_off;
+
+	if (constrain_pitch) {
+		if (camera->pitch > 89.0f) {
+			camera->pitch = 89.0f;
+		} else if (camera->pitch < -89.0f) {
+			camera->pitch = -89.0f;
+		}
+	}
+
+	update_camera_vectors(camera);
+}
+
+static void
+process_mouse_scroll_for_camera(Camera *camera, f32 y_off)
+{
+	camera->zoom -= (f32)y_off;
+	if (camera->zoom < 1.0f) {
+		camera->zoom = 1.0f;
+	} else if (camera->zoom > 45.0f) {
+		camera->zoom = 45.0f;
+	}
+}
 
 static Shader
 create_shader(const char *vertex_filepath, const char *fragment_filepath)
@@ -154,10 +283,6 @@ set_shader_m4f32(Shader shader, const char *name, mat4 mat)
 	glUniformMatrix4fv(glGetUniformLocation(shader.id, name), 1, GL_FALSE, mat[0]);
 }
 
-typedef struct _Texture {
-	u32 id;
-} Texture;
-
 static Texture
 create_texture(const char *filepath, b32 flipped)
 {
@@ -201,6 +326,83 @@ use_texture(Texture texture, s32 unit)
 	glBindTexture(GL_TEXTURE_2D, texture.id);
 }
 
+static void
+glfw_error_callback(int error, const char* description)
+{
+    UNUSED(error);
+    LOG_ERROR("GLFW error: %s", description);
+}
+
+static void
+cursor_position_callback(GLFWwindow *window, f64 x_pos_, f64 y_pos_)
+{
+	UNUSED(window);
+	
+	f32 x_pos = (f32)x_pos_;
+	f32 y_pos = (f32)y_pos_;
+
+	if (first_mouse) {
+		last_x_pos = x_pos;
+		last_y_pos = y_pos;
+		first_mouse = false;
+	}
+
+	f32 x_off = x_pos - last_x_pos;
+	f32 y_off = last_y_pos - y_pos;
+
+	last_x_pos = x_pos;
+	last_y_pos = y_pos;
+
+	process_mouse_movement_for_camera(&camera, x_off, y_off, true, delta_time);
+}
+
+static void
+scroll_callback(GLFWwindow *window, f64 x_offset, f64 y_offset)
+{
+	UNUSED(window);
+	UNUSED(x_offset);
+	
+	process_mouse_scroll_for_camera(&camera, (f32)y_offset);
+}
+	
+static void
+glfw_framebuffer_size_callback(GLFWwindow *window, s32 width, s32 height)
+{
+	UNUSED(window);
+
+	window_width = width;
+	window_height = height;
+
+	last_x_pos = (f32)width/2.0f;
+	last_y_pos = (f32)height/2.0f;
+	
+	glViewport(0, 0, width, height);
+}
+
+static void
+process_inputs(GLFWwindow *window)
+{
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+		glfwSetWindowShouldClose(window, true);
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+		process_keyboard_for_camera(&camera, CAMERA_MOVEMENT_FORWARD, true);
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+		process_keyboard_for_camera(&camera, CAMERA_MOVEMENT_BACKWARD, true);
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+		process_keyboard_for_camera(&camera, CAMERA_MOVEMENT_LEFT, true);
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+		process_keyboard_for_camera(&camera, CAMERA_MOVEMENT_RIGHT, true);
+	}	
+}
+
 int
 main(int argc, const char * argv[])
 {
@@ -226,6 +428,10 @@ main(int argc, const char * argv[])
 	
 	window_width = 1280;
 	window_height = 720;
+	
+	last_x_pos = (f32)window_width/2.0f;
+	last_y_pos = (f32)window_height/2.0f;
+	
     LOG_INFO("Creating window.");
     GLFWwindow *window = glfwCreateWindow(window_width, window_height, "Sparrow", NULL, NULL);
     if (!window) {
@@ -235,6 +441,10 @@ main(int argc, const char * argv[])
     LOG_SUCCESS("Successfully created window");
 
     glfwMakeContextCurrent(window);
+	
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetCursorPosCallback(window, cursor_position_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 
     // Initialize GLEW
     LOG_INFO("Initializing GLEW");
@@ -347,32 +557,36 @@ main(int argc, const char * argv[])
 	set_shader_s32(shader, "texture1", 0);
 	set_shader_s32(shader, "texture2", 1);
 
-	glEnable(GL_DEPTH_TEST);  
+	glEnable(GL_DEPTH_TEST);
 
+	camera = create_camera((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 1.0f, 0.0f}, -90.0f, 0.0f);
+	
 	// Main loop
 	LOG_INFO("Entering main loop")
     while (!glfwWindowShouldClose(window)) {
-		process_input(window);
+		f32 current_time = glfwGetTime();
+		delta_time = current_time - last_time;
+		last_time = current_time;
+		
+		process_inputs(window);
 
 		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	    
 		use_texture(texture1, GL_TEXTURE0);
 		use_texture(texture2, GL_TEXTURE1);
-
-		mat4 view = GLM_MAT4_IDENTITY_INIT;
-		glm_translate(view, (vec3){0.0f, 0.0f, -3.0f});
-		
-		mat4 projection;
-		glm_perspective(glm_rad(45.0f), (float)window_width/(float)window_height,
-						0.1f, 100.0f, projection);
 		
 		use_shader(shader);
-
-		set_shader_m4f32(shader, "view", view);
+		
+		mat4 projection;
+		glm_perspective(glm_rad(camera.zoom), (float)window_width/(float)window_height,
+						0.1f, 100.0f, projection);
 		set_shader_m4f32(shader, "projection", projection);
-				
+
+		mat4 view;
+		get_camera_view_matrix(&camera, &view);
+		set_shader_m4f32(shader, "view", view);
+	   				
 		glBindVertexArray(vao);
 		/* glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); */
 
