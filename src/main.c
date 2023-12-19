@@ -148,6 +148,12 @@ set_shader_v4f32(Shader shader, const char *name, f32 v1, f32 v2, f32 v3, f32 v4
 	glUniform4f(glGetUniformLocation(shader.id, name), v1, v2, v3, v4);
 }
 
+static void
+set_shader_m4f32(Shader shader, const char *name, mat4 mat)
+{
+	glUniformMatrix4fv(glGetUniformLocation(shader.id, name), 1, GL_FALSE, mat[0]);
+}
+
 typedef struct _Texture {
 	u32 id;
 } Texture;
@@ -245,11 +251,11 @@ main(int argc, const char * argv[])
 								  "res/shaders/triangle.frag.glsl");
 
 	float vertices[] = {
-        // positions          // colors           // texture coords
-		0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-		0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
+        // positions            // texture coords
+		 0.5f,  0.5f, 0.0f,     1.0f, 1.0f, // top right
+		 0.5f, -0.5f, 0.0f,     1.0f, 0.0f, // bottom right
+        -0.5f, -0.5f, 0.0f,     0.0f, 0.0f, // bottom left
+        -0.5f,  0.5f, 0.0f,     0.0f, 1.0f  // top left 
     };
 	
     unsigned int indices[] = {  
@@ -271,14 +277,11 @@ main(int argc, const char * argv[])
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
-    // Color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
     // Texture coord attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 	
 	Texture texture1 = create_texture("res/wall.jpg", false);
 	Texture texture2 = create_texture("res/awesomeface.png", true);
@@ -286,6 +289,7 @@ main(int argc, const char * argv[])
 	use_shader(shader);
 	set_shader_s32(shader, "texture1", 0);
 	set_shader_s32(shader, "texture2", 1);
+
 	
 	// Main loop
 	LOG_INFO("Entering main loop")
@@ -298,7 +302,12 @@ main(int argc, const char * argv[])
 		use_texture(texture1, GL_TEXTURE0);
 		use_texture(texture2, GL_TEXTURE1);
 
+		mat4 transform = GLM_MAT4_IDENTITY_INIT;
+		glm_translate(transform, (vec3){0.5f * sinf(glfwGetTime()), -0.5f, 0.0f});
+		glm_rotate(transform, (float)glfwGetTime(), (vec3){0.0f, 0.0f, 1.0f});
+		
 		use_shader(shader);
+		set_shader_m4f32(shader, "transform", transform);
 		
 		glBindVertexArray(vao);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
